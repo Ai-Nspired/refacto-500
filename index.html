@@ -1,35 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>HTML Snippet Extractor - Enhanced</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <title>CSS Component Builder - LEGO Style</title>
     <style>
+        * { box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
-            background: #f8f8f8;
+            background: #f0f0f0;
         }
-        .container {
+        .main-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
-            max-width: 1400px;
+            max-width: 1800px;
             margin: 0 auto;
         }
-        textarea, .preview-container, .snippet-container {
-            min-height: 500px;
-            border: 2px solid #9a2a2a;
+        h1 { text-align: center; grid-column: 1 / -1; color: #333; }
+        .panel {
             background: white;
-            padding: 15px;
+            border: 2px solid #9a2a2a;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #9a2a2a;
+            border-bottom: 2px solid #9a2a2a;
+            padding-bottom: 10px;
         }
         textarea {
             width: 100%;
+            min-height: 400px;
             font-family: 'Courier New', monospace;
-            font-size: 14px;
+            font-size: 13px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             resize: vertical;
         }
         button {
@@ -37,11 +46,11 @@
             color: white;
             border: none;
             padding: 10px 16px;
-            margin: 5px;
+            margin: 5px 5px 5px 0;
             cursor: pointer;
             border-radius: 5px;
-            font-size: 14px;
-            transition: background-color 0.3s;
+            font-size: 13px;
+            transition: background 0.3s;
         }
         button:hover {
             background: #7a1a1a;
@@ -50,425 +59,422 @@
             background: #ccc;
             cursor: not-allowed;
         }
-        .button-group {
-            margin: 10px 0;
-        }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background: white;
-            border-radius: 4px;
-        }
-        pre {
-            margin: 0;
-            overflow-x: auto;
-            background: #f4f4f4;
-            padding: 15px;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-        .tab-buttons {
-            display: flex;
-            margin-bottom: 10px;
-        }
-        .tab-buttons button {
-            background: #ddd;
-            color: black;
-            border-radius: 5px 5px 0 0;
-        }
-        .tab-buttons button.active {
-            background: #9a2a2a;
-            color: white;
-        }
-        .analysis-section {
+        .component-block {
             background: #f9f9f9;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
+            border: 1px solid #ddd;
             border-left: 4px solid #9a2a2a;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            cursor: grab;
+            transition: all 0.2s;
         }
-        .analysis-item {
-            margin: 8px 0;
+        .component-block:hover {
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(154, 42, 42, 0.2);
+        }
+        .component-block.dragging {
+            opacity: 0.6;
+            cursor: grabbing;
+        }
+        .component-block.drag-over {
+            background: #e8f4f8;
+            border-left-color: #0066cc;
+        }
+        .component-title {
+            font-weight: 600;
+            color: #9a2a2a;
+            margin: 0 0 8px 0;
             display: flex;
             justify-content: space-between;
-        }
-        .analysis-item strong {
-            color: #9a2a2a;
-        }
-        .snippet-controls {
-            display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
         }
-        select {
+        .component-css {
+            background: #f0f0f0;
             padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #333;
+            max-height: 100px;
+            overflow-y: auto;
+            margin: 8px 0;
         }
-        .status-message {
+        .component-html {
+            background: #fff9e6;
+            padding: 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #333;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        .action-buttons button {
+            margin: 0;
+            padding: 6px 10px;
+            font-size: 11px;
+            flex: 1;
+        }
+        .action-buttons button.remove {
+            background: #cc3333;
+        }
+        .action-buttons button.remove:hover {
+            background: #aa1111;
+        }
+        .builder-area {
+            background: white;
+            border: 2px dashed #9a2a2a;
+            border-radius: 8px;
+            min-height: 600px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .builder-area.drag-over {
+            background: #f0f8ff;
+            border-color: #0066cc;
+        }
+        .builder-area h3 {
+            color: #999;
+            margin-top: 0;
+        }
+        .builder-item {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            position: relative;
+        }
+        .builder-item .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #cc3333;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .builder-item .remove-btn:hover {
+            background: #aa1111;
+        }
+        .output-code {
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-top: 10px;
+        }
+        .status {
+            background: #e8f5e9;
+            color: #2e7d32;
             padding: 10px;
             border-radius: 4px;
             margin: 10px 0;
             display: none;
         }
-        .status-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        .status.show {
+            display: block;
         }
-        .status-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
         }
-        .hljs {
-            background: #f8f8f8 !important;
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div>
-            <h2>Input HTML</h2>
-            <textarea id="html-input" placeholder="Paste your complete HTML here..."></textarea>
-            <div class="button-group">
-                <button id="preview-btn">Preview & Analyze</button>
-                <button id="clear-btn">Clear</button>
-            </div>
-            <div id="status-message" class="status-message"></div>
+    <h1>🧩 CSS Component Builder - Build with LEGO Blocks</h1>
+    
+    <div class="main-container">
+        <!-- INPUT PANEL -->
+        <div class="panel">
+            <h2>Step 1: Paste HTML</h2>
+            <textarea id="html-input" placeholder="Paste your HTML with styles here..."></textarea>
+            <button onclick="extractComponents()">Extract Components</button>
+            <button onclick="clearInput()">Clear</button>
+            <div id="status" class="status"></div>
         </div>
 
-        <div>
-            <div class="tab-buttons">
-                <button class="active" data-tab="preview">Preview</button>
-                <button data-tab="analysis">Analysis</button>
-                <button data-tab="snippets">Snippets</button>
+        <!-- COMPONENTS PANEL -->
+        <div class="panel">
+            <h2>Step 2: Available Blocks</h2>
+            <div id="components-list">
+                <p style="color: #999;">Extract components first...</p>
             </div>
-            
-            <div class="preview-container" id="preview-tab">
-                <iframe id="preview-frame"></iframe>
+        </div>
+
+        <!-- BUILDER PANEL -->
+        <div class="panel">
+            <h2>Step 3: Build Template</h2>
+            <button onclick="downloadTemplate()">Download Template</button>
+            <button onclick="copyTemplate()">Copy HTML+CSS</button>
+            <button onclick="clearBuilder()">Clear Builder</button>
+            <div class="builder-area" id="builder" ondrop="dropComponent(event)" ondragover="dragOver(event)" ondragleave="dragLeave(event)">
+                <h3>Drag components here to build</h3>
             </div>
-            
-            <div class="snippet-container" id="analysis-tab" style="display:none;">
-                <h3>HTML Structure Analysis</h3>
-                <div id="analysis-results">
-                    <p>Click "Preview & Analyze" to see detailed analysis of your HTML structure.</p>
-                </div>
-            </div>
-            
-            <div class="snippet-container" id="snippets-tab" style="display:none;">
-                <h3>Extract Code Snippets</h3>
-                <div class="snippet-controls">
-                    <select id="snippet-type">
-                        <option value="full">Full Page</option>
-                        <option value="head">Head Section</option>
-                        <option value="styles">All Styles</option>
-                        <option value="scripts">All Scripts</option>
-                        <option value="nav">Navigation Elements</option>
-                        <option value="header">Header Section</option>
-                        <option value="main">Main Content</option>
-                        <option value="footer">Footer Section</option>
-                        <option value="forms">Form Elements</option>
-                        <option value="tables">Table Elements</option>
-                        <option value="lists">List Elements</option>
-                        <option value="images">Image Elements</option>
-                        <option value="links">Link Elements</option>
-                    </select>
-                    <button id="generate-snippet">Generate</button>
-                    <button id="copy-snippet">Copy</button>
-                </div>
-                <pre id="snippet-output"><code>// Select a component type and click Generate</code></pre>
-            </div>
+        </div>
+
+        <!-- OUTPUT PANEL -->
+        <div class="panel" style="grid-column: 1 / -1;">
+            <h2>Generated Code</h2>
+            <div id="output-code" class="output-code"><!-- Generated code will appear here --></div>
         </div>
     </div>
 
     <script>
-        let currentHTML = '';
-        let parsedDocument = null;
+        let components = [];
+        let builderItems = [];
 
-        // Tab switching functionality
-        document.querySelectorAll('.tab-buttons button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-buttons button').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                // Hide all tabs
-                document.getElementById('preview-tab').style.display = 'none';
-                document.getElementById('analysis-tab').style.display = 'none';
-                document.getElementById('snippets-tab').style.display = 'none';
-                
-                // Show selected tab
-                document.getElementById(btn.dataset.tab + '-tab').style.display = 'block';
-            });
-        });
-
-        // Show status message
-        function showStatus(message, type = 'success') {
-            const statusEl = document.getElementById('status-message');
-            statusEl.textContent = message;
-            statusEl.className = `status-message status-${type}`;
-            statusEl.style.display = 'block';
-            setTimeout(() => {
-                statusEl.style.display = 'none';
-            }, 3000);
+        function showStatus(msg, isError = false) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.classList.add('show');
+            el.classList.toggle('error', isError);
+            setTimeout(() => el.classList.remove('show'), 3000);
         }
 
-        // Analyze HTML structure
-        function analyzeHTML(html) {
+        function extractComponents() {
+            const html = document.getElementById('html-input').value;
+            if (!html.trim()) {
+                showStatus('Please paste HTML', true);
+                return;
+            }
+
             try {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
-                parsedDocument = doc;
-                
-                const analysis = {
-                    totalElements: doc.querySelectorAll('*').length,
-                    headElements: doc.querySelectorAll('head *').length,
-                    bodyElements: doc.querySelectorAll('body *').length,
-                    divElements: doc.querySelectorAll('div').length,
-                    spanElements: doc.querySelectorAll('span').length,
-                    paragraphs: doc.querySelectorAll('p').length,
-                    headings: doc.querySelectorAll('h1, h2, h3, h4, h5, h6').length,
-                    links: doc.querySelectorAll('a').length,
-                    images: doc.querySelectorAll('img').length,
-                    forms: doc.querySelectorAll('form').length,
-                    inputs: doc.querySelectorAll('input, textarea, select').length,
-                    tables: doc.querySelectorAll('table').length,
-                    lists: doc.querySelectorAll('ul, ol').length,
-                    scripts: doc.querySelectorAll('script').length,
-                    styles: doc.querySelectorAll('style, link[rel="stylesheet"]').length,
-                    classes: new Set(Array.from(doc.querySelectorAll('[class]')).map(el => el.className.split(' ')).flat().filter(c => c.trim())).size,
-                    ids: doc.querySelectorAll('[id]').length
-                };
+                const styleTag = doc.querySelector('style');
+                const css = styleTag ? styleTag.textContent : '';
 
-                // Display analysis results
-                const resultsContainer = document.getElementById('analysis-results');
-                resultsContainer.innerHTML = `
-                    <div class="analysis-section">
-                        <h4>Element Count</h4>
-                        <div class="analysis-item"><span>Total Elements:</span> <strong>${analysis.totalElements}</strong></div>
-                        <div class="analysis-item"><span>Head Elements:</span> <strong>${analysis.headElements}</strong></div>
-                        <div class="analysis-item"><span>Body Elements:</span> <strong>${analysis.bodyElements}</strong></div>
-                    </div>
-                    
-                    <div class="analysis-section">
-                        <h4>Content Elements</h4>
-                        <div class="analysis-item"><span>Div Elements:</span> <strong>${analysis.divElements}</strong></div>
-                        <div class="analysis-item"><span>Span Elements:</span> <strong>${analysis.spanElements}</strong></div>
-                        <div class="analysis-item"><span>Paragraphs:</span> <strong>${analysis.paragraphs}</strong></div>
-                        <div class="analysis-item"><span>Headings:</span> <strong>${analysis.headings}</strong></div>
-                    </div>
-                    
-                    <div class="analysis-section">
-                        <h4>Interactive Elements</h4>
-                        <div class="analysis-item"><span>Links:</span> <strong>${analysis.links}</strong></div>
-                        <div class="analysis-item"><span>Images:</span> <strong>${analysis.images}</strong></div>
-                        <div class="analysis-item"><span>Forms:</span> <strong>${analysis.forms}</strong></div>
-                        <div class="analysis-item"><span>Input Fields:</span> <strong>${analysis.inputs}</strong></div>
-                    </div>
-                    
-                    <div class="analysis-section">
-                        <h4>Structure Elements</h4>
-                        <div class="analysis-item"><span>Tables:</span> <strong>${analysis.tables}</strong></div>
-                        <div class="analysis-item"><span>Lists:</span> <strong>${analysis.lists}</strong></div>
-                        <div class="analysis-item"><span>Scripts:</span> <strong>${analysis.scripts}</strong></div>
-                        <div class="analysis-item"><span>Styles:</span> <strong>${analysis.styles}</strong></div>
-                    </div>
-                    
-                    <div class="analysis-section">
-                        <h4>Attributes</h4>
-                        <div class="analysis-item"><span>Unique Classes:</span> <strong>${analysis.classes}</strong></div>
-                        <div class="analysis-item"><span>Elements with IDs:</span> <strong>${analysis.ids}</strong></div>
-                    </div>
-                `;
+                components = [];
 
-                return analysis;
-            } catch (error) {
-                console.error('Analysis error:', error);
-                document.getElementById('analysis-results').innerHTML = `
-                    <div class="analysis-section">
-                        <h4>Analysis Error</h4>
-                        <p style="color: #721c24;">Could not analyze HTML: ${error.message}</p>
-                    </div>
-                `;
-                return null;
+                // Extract individual CSS rules
+                const rules = css.split('}').filter(r => r.trim());
+                rules.forEach((rule, idx) => {
+                    if (!rule.trim()) return;
+                    
+                    const match = rule.match(/([^{]+){([^}]*)/);
+                    if (match) {
+                        const selector = match[1].trim();
+                        const styles = match[2].trim();
+                        
+                        if (selector && styles) {
+                            components.push({
+                                id: `comp-${idx}`,
+                                name: selector.substring(0, 30),
+                                selector: selector,
+                                css: `${selector} {\n  ${styles}\n}`,
+                                html: `<div class="${selector.replace(/^\./, '').split(' ')[0]}">Content</div>`,
+                                order: idx
+                            });
+                        }
+                    }
+                });
+
+                // Extract @keyframes
+                const keyframes = css.match(/@keyframes[\s\S]*?}/g) || [];
+                keyframes.forEach((kf, idx) => {
+                    components.push({
+                        id: `anim-${idx}`,
+                        name: kf.substring(0, 40) + '...',
+                        selector: '@keyframes',
+                        css: kf,
+                        html: `<div style="animation: your-animation 2s;">Animated</div>`,
+                        order: components.length
+                    });
+                });
+
+                // Extract media queries
+                const media = css.match(/@media[\s\S]*?}\s*}/g) || [];
+                media.forEach((m, idx) => {
+                    components.push({
+                        id: `media-${idx}`,
+                        name: '@media query',
+                        selector: m.substring(0, 40) + '...',
+                        css: m,
+                        html: `<!-- Media query rules -->`,
+                        order: components.length
+                    });
+                });
+
+                displayComponents();
+                showStatus(`Extracted ${components.length} CSS components!`);
+            } catch (e) {
+                showStatus(`Error: ${e.message}`, true);
             }
         }
 
-        // Preview and analyze button
-        document.getElementById('preview-btn').addEventListener('click', function() {
-            const html = document.getElementById('html-input').value;
-            if (!html.trim()) {
-                showStatus("Please enter HTML content", "error");
+        function displayComponents() {
+            const list = document.getElementById('components-list');
+            if (components.length === 0) {
+                list.innerHTML = '<p style="color: #999;">No components found</p>';
                 return;
             }
-            
-            currentHTML = html;
-            
-            // Create preview
-            const iframe = document.getElementById('preview-frame');
-            const blob = new Blob([html], {type: 'text/html'});
-            iframe.src = URL.createObjectURL(blob);
-            
-            // Perform analysis
-            analyzeHTML(html);
-            
-            // Show success message
-            showStatus("HTML previewed and analyzed successfully!");
-            
-            // Enable other tabs
-            iframe.onload = function() {
-                document.querySelector('[data-tab="analysis"]').disabled = false;
-                document.querySelector('[data-tab="snippets"]').disabled = false;
-            };
-        });
 
-        // Clear button
-        document.getElementById('clear-btn').addEventListener('click', function() {
-            document.getElementById('html-input').value = '';
-            document.getElementById('preview-frame').src = '';
-            document.getElementById('analysis-results').innerHTML = '<p>Click "Preview & Analyze" to see detailed analysis of your HTML structure.</p>';
-            document.getElementById('snippet-output').innerHTML = '<code>// Select a component type and click Generate</code>';
-            currentHTML = '';
-            parsedDocument = null;
-            showStatus("Content cleared");
-        });
+            list.innerHTML = components.map(comp => `
+                <div class="component-block" draggable="true" ondragstart="dragStart(event, '${comp.id}')">
+                    <div class="component-title">
+                        ${comp.name}
+                        <span style="font-size: 11px; color: #999;">#${comp.id}</span>
+                    </div>
+                    <div class="component-css">${escapeHtml(comp.css).substring(0, 150)}...</div>
+                    <div class="action-buttons">
+                        <button onclick="addToBuilder('${comp.id}')">Add to Builder</button>
+                        <button onclick="copyComponent('${comp.id}')" style="background: #0066cc;">Copy CSS</button>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-        // Enhanced snippet generation
-        document.getElementById('generate-snippet').addEventListener('click', function() {
-            if (!currentHTML || !parsedDocument) {
-                showStatus("Please preview and analyze HTML first", "error");
+        function addToBuilder(compId) {
+            const comp = components.find(c => c.id === compId);
+            if (!comp) return;
+
+            builderItems.push({...comp, builderId: `build-${Date.now()}-${Math.random()}`});
+            updateBuilder();
+            showStatus('Added to builder!');
+        }
+
+        function dragStart(event, compId) {
+            event.dataTransfer.effectAllowed = 'copy';
+            event.dataTransfer.setData('componentId', compId);
+        }
+
+        function dragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+            document.getElementById('builder').classList.add('drag-over');
+        }
+
+        function dragLeave(event) {
+            document.getElementById('builder').classList.remove('drag-over');
+        }
+
+        function dropComponent(event) {
+            event.preventDefault();
+            document.getElementById('builder').classList.remove('drag-over');
+            const compId = event.dataTransfer.getData('componentId');
+            addToBuilder(compId);
+        }
+
+        function updateBuilder() {
+            const builder = document.getElementById('builder');
+            if (builderItems.length === 0) {
+                builder.innerHTML = '<h3>Drag components here to build</h3>';
+                generateOutput();
                 return;
             }
-            
-            const type = document.getElementById('snippet-type').value;
-            
-            try {
-                let snippet = '';
-                let elements = [];
-                
-                switch(type) {
-                    case 'full':
-                        snippet = currentHTML;
-                        break;
-                        
-                    case 'head':
-                        const head = parsedDocument.querySelector('head');
-                        snippet = head ? head.outerHTML : '<!-- No head section found -->';
-                        break;
-                        
-                    case 'styles':
-                        elements = Array.from(parsedDocument.querySelectorAll('style, link[rel="stylesheet"]'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n\n') : 
-                            '<!-- No styles found -->';
-                        break;
-                        
-                    case 'scripts':
-                        elements = Array.from(parsedDocument.querySelectorAll('script'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n\n') : 
-                            '<!-- No scripts found -->';
-                        break;
-                        
-                    case 'nav':
-                        elements = Array.from(parsedDocument.querySelectorAll('nav, .nav, .navigation, .navbar'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n\n') : 
-                            '<!-- No navigation elements found -->';
-                        break;
-                        
-                    case 'header':
-                        elements = Array.from(parsedDocument.querySelectorAll('header, .header'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n\n') : 
-                            '<!-- No header elements found -->';
-                        break;
-                        
-                    case 'main':
-                        elements = Array.from(parsedDocument.querySelectorAll('main, .main, .content, .main-content'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n\n') : 
-                            '<!-- No main content elements found -->';
-                        break;
-                        
-                    case 'footer':
-                        elements = Array.from(parsedDocument.querySelectorAll('footer, .footer'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n\n') : 
-                            '<!-- No footer elements found -->';
-                        break;
-                        
-                    case 'forms':
-                        elements = Array.from(parsedDocument.querySelectorAll('form'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n\n') : 
-                            '<!-- No forms found -->';
-                        break;
-                        
-                    case 'tables':
-                        elements = Array.from(parsedDocument.querySelectorAll('table'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n\n') : 
-                            '<!-- No tables found -->';
-                        break;
-                        
-                    case 'lists':
-                        elements = Array.from(parsedDocument.querySelectorAll('ul, ol'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n\n') : 
-                            '<!-- No lists found -->';
-                        break;
-                        
-                    case 'images':
-                        elements = Array.from(parsedDocument.querySelectorAll('img'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n') : 
-                            '<!-- No images found -->';
-                        break;
-                        
-                    case 'links':
-                        elements = Array.from(parsedDocument.querySelectorAll('a'));
-                        snippet = elements.length > 0 ? 
-                            elements.map(el => el.outerHTML).join('\n') : 
-                            '<!-- No links found -->';
-                        break;
-                }
-                
-                // Apply syntax highlighting
-                const highlighted = hljs.highlight(snippet, {language: 'html'}).value;
-                document.getElementById('snippet-output').innerHTML = highlighted;
-                
-                showStatus(`${type.charAt(0).toUpperCase() + type.slice(1)} snippet generated successfully!`);
-                
-            } catch (e) {
-                document.getElementById('snippet-output').innerHTML = `<code>ERROR: ${e.message}</code>`;
-                showStatus(`Error generating snippet: ${e.message}`, "error");
-            }
-        });
 
-        // Copy snippet functionality
-        document.getElementById('copy-snippet').addEventListener('click', function() {
-            const snippetElement = document.querySelector('#snippet-output');
-            if (!snippetElement || !snippetElement.textContent.trim()) {
-                showStatus("No snippet to copy", "error");
-                return;
-            }
-            
-            const snippet = snippetElement.textContent;
-            navigator.clipboard.writeText(snippet).then(() => {
-                showStatus('Snippet copied to clipboard!');
-            }).catch(err => {
-                showStatus('Failed to copy to clipboard', "error");
-                console.error('Copy failed:', err);
+            builder.innerHTML = '<h3>' + builderItems.length + ' component(s) added</h3>' + 
+                builderItems.map((item, idx) => `
+                    <div class="builder-item">
+                        <button class="remove-btn" onclick="removeBuilderItem(${idx})">Remove</button>
+                        <strong>${item.name}</strong>
+                        <div style="font-size: 12px; color: #666; margin: 8px 0;">${item.selector}</div>
+                        <div class="component-css">${escapeHtml(item.css)}</div>
+                    </div>
+                `).join('');
+
+            generateOutput();
+        }
+
+        function removeBuilderItem(idx) {
+            builderItems.splice(idx, 1);
+            updateBuilder();
+        }
+
+        function generateOutput() {
+            const cssCode = builderItems.map(item => item.css).join('\n\n');
+            const htmlCode = builderItems.map((item, idx) => 
+                `<!-- Block ${idx + 1}: ${item.name} -->\n${item.html}`
+            ).join('\n\n');
+
+            const fullCode = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Built Template</title>
+    <style>
+${cssCode.split('\n').map(l => '        ' + l).join('\n')}
+    </style>
+</head>
+<body>
+${htmlCode.split('\n').map(l => '    ' + l).join('\n')}
+</body>
+</html>`;
+
+            document.getElementById('output-code').textContent = fullCode;
+        }
+
+        function copyComponent(compId) {
+            const comp = components.find(c => c.id === compId);
+            navigator.clipboard.writeText(comp.css).then(() => {
+                showStatus('CSS copied!');
             });
-        });
+        }
 
-        // Initialize highlight.js
-        hljs.highlightAll();
+        function copyTemplate() {
+            const code = document.getElementById('output-code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                showStatus('Template copied!');
+            }).catch(() => showStatus('Copy failed', true));
+        }
+
+        function downloadTemplate() {
+            const code = document.getElementById('output-code').textContent;
+            const blob = new Blob([code], {type: 'text/html'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'template-' + Date.now() + '.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearInput() {
+            document.getElementById('html-input').value = '';
+            components = [];
+            builderItems = [];
+            document.getElementById('components-list').innerHTML = '<p style="color: #999;">Extract components first...</p>';
+            document.getElementById('builder').innerHTML = '<h3>Drag components here to build</h3>';
+            document.getElementById('output-code').textContent = '';
+        }
+
+        function clearBuilder() {
+            builderItems = [];
+            updateBuilder();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
     </script>
 </body>
 </html>
