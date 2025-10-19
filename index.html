@@ -836,19 +836,84 @@
                 `<!-- Block ${idx + 1}: ${item.name} -->\n${item.html}`
             ).join('\n\n');
 
-            const fullCode = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Built Template</title>
-    <style>
-${cssCode.split('\n').map(l => '        ' + l).join('\n')}
-    </style>
-</head>
-<body>
-${htmlCode.split('\n').map(l => '    ' + l).join('\n')}
-</body>
-</html>`;
+            const responsiveCSS = `* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: auto;
+}
+
+body {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+button, a, input, textarea, select {
+  font-size: 16px;
+}
+
+button {
+  padding: 12px 20px;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+p, li, dt, dd {
+  word-break: break-word;
+}
+
+@media (min-width: 768px) {
+  body {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container, [class*="container"], [class*="wrapper"] {
+    padding: 1rem !important;
+  }
+  
+  button, .btn, [role="button"] {
+    width: 100% !important;
+  }
+}`;
+
+            let fullCode = '<!DOCTYPE html>\n';
+            fullCode += '<html lang="en">\n';
+            fullCode += '<head>\n';
+            fullCode += '    <meta charset="UTF-8">\n';
+            fullCode += '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
+            fullCode += '    <title>Built Template</title>\n';
+            fullCode += '    <style>\n';
+            fullCode += responsiveCSS + '\n\n';
+            fullCode += cssCode + '\n';
+            fullCode += '    </style>\n';
+            fullCode += '</head>\n';
+            fullCode += '<body>\n';
+            fullCode += htmlCode + '\n';
+            fullCode += '</body>\n';
+            fullCode += '</html>';
 
             document.getElementById('output-code').textContent = fullCode;
         }
