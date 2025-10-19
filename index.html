@@ -151,6 +151,15 @@
             margin: 10px 0;
             border-radius: 4px;
             position: relative;
+            cursor: grab;
+            transition: all 0.2s;
+        }
+        .builder-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .builder-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
         }
         .builder-item .remove-btn {
             position: absolute;
@@ -166,6 +175,82 @@
         }
         .builder-item .remove-btn:hover {
             background: #aa1111;
+        }
+        .builder-item .edit-btn {
+            position: absolute;
+            top: 5px;
+            right: 50px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .builder-item .edit-btn:hover {
+            background: #0044aa;
+        }
+        .drag-handle {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            cursor: grab;
+            color: #999;
+            font-size: 18px;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        .builder-item.drag-over {
+            border-top: 3px solid #0066cc;
+        }
+        .edit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .edit-modal.show {
+            display: flex;
+        }
+        .edit-modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .edit-modal h3 {
+            margin-top: 0;
+            color: #9a2a2a;
+        }
+        .edit-modal textarea {
+            width: 100%;
+            height: 200px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .edit-modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .edit-modal-buttons button {
+            flex: 1;
         }
         .output-code {
             background: #1a1a1a;
@@ -213,7 +298,17 @@
     <div class="main-container">
         <!-- INPUT PANEL -->
         <div class="panel">
-            <h2>Step 1: Paste HTML</h2>
+            <h2>Step 1: Paste HTML or Markdown</h2>
+            <div style="margin-bottom: 10px;">
+                <label style="display: flex; gap: 10px; align-items: center; cursor: pointer;">
+                    <input type="radio" name="input-type" value="html" checked onchange="switchInputMode('html')">
+                    HTML with CSS
+                </label>
+                <label style="display: flex; gap: 10px; align-items: center; cursor: pointer;">
+                    <input type="radio" name="input-type" value="markdown" onchange="switchInputMode('markdown')">
+                    Markdown
+                </label>
+            </div>
             <textarea id="html-input" placeholder="Paste your HTML with styles here..."></textarea>
             <button onclick="extractComponents()">Extract Components</button>
             <button onclick="clearInput()">Clear</button>
@@ -233,7 +328,10 @@
             <h2>Step 3: Build Template</h2>
             <button onclick="downloadTemplate()">Download Template</button>
             <button onclick="copyTemplate()">Copy HTML+CSS</button>
+            <button onclick="saveTemplate()">Save Template</button>
+            <button onclick="loadTemplate()">Load Saved</button>
             <button onclick="clearBuilder()">Clear Builder</button>
+            <div id="save-status" style="font-size: 12px; color: #999; margin-top: 8px;"></div>
             <div class="builder-area" id="builder" ondrop="dropComponent(event)" ondragover="dragOver(event)" ondragleave="dragLeave(event)">
                 <h3>Drag components here to build</h3>
             </div>
@@ -246,9 +344,32 @@
         </div>
     </div>
 
+    <!-- EDIT MODAL -->
+    <div id="edit-modal" class="edit-modal">
+        <div class="edit-modal-content">
+            <h3>Edit Component</h3>
+            <input type="hidden" id="edit-index">
+            
+            <label><strong>Component Name:</strong></label>
+            <input type="text" id="edit-component-name" placeholder="Component name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 15px;">
+            
+            <label><strong>CSS:</strong></label>
+            <textarea id="edit-component-css" placeholder="Edit CSS..."></textarea>
+            
+            <label><strong>HTML:</strong></label>
+            <textarea id="edit-component-html" placeholder="Edit HTML..."></textarea>
+            
+            <div class="edit-modal-buttons">
+                <button onclick="saveEdit()" style="background: #0066cc;">Save Changes</button>
+                <button onclick="cancelEdit()" style="background: #999;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let components = [];
         let builderItems = [];
+        let currentInputMode = 'html';
 
         function showStatus(msg, isError = false) {
             const el = document.getElementById('status');
@@ -258,72 +379,271 @@
             setTimeout(() => el.classList.remove('show'), 3000);
         }
 
+        function switchInputMode(mode) {
+            currentInputMode = mode;
+            const input = document.getElementById('html-input');
+            if (mode === 'html') {
+                input.placeholder = 'Paste your HTML with styles here...';
+            } else {
+                input.placeholder = 'Paste your Markdown here...';
+            }
+        }
+
+        function parseMarkdown(markdown) {
+            const components = [];
+
+            // Extract headings
+            const headings = markdown.match(/^#{1,6}\s+(.+)$/gm) || [];
+            headings.forEach((h, idx) => {
+                const level = h.match(/^#+/)[0].length;
+                const text = h.replace(/^#+\s+/, '').trim();
+                components.push({
+                    id: `md-heading-${idx}`,
+                    name: `H${level}: ${text.substring(0, 25)}`,
+                    selector: `.heading-${level}`,
+                    css: `
+.heading-${level} {
+  font-size: ${2.5 - (level * 0.3)}rem;
+  font-weight: bold;
+  margin: 1.5rem 0 0.5rem 0;
+  color: #333;
+}`,
+                    html: `<h${level} class="heading-${level}">${text}</h${level}>`,
+                    order: components.length
+                });
+            });
+
+            // Extract blockquotes
+            const blockquotes = markdown.match(/^>\s+(.+)$/gm) || [];
+            blockquotes.forEach((bq, idx) => {
+                const text = bq.replace(/^>\s+/, '').trim();
+                components.push({
+                    id: `md-quote-${idx}`,
+                    name: `Quote: ${text.substring(0, 25)}`,
+                    selector: `.blockquote`,
+                    css: `
+.blockquote {
+  border-left: 4px solid #9a2a2a;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #666;
+  font-style: italic;
+}`,
+                    html: `<blockquote class="blockquote">${text}</blockquote>`,
+                    order: components.length
+                });
+            });
+
+            // Extract code blocks
+            const codeBlocks = markdown.match(/```[\s\S]*?```/g) || [];
+            codeBlocks.forEach((cb, idx) => {
+                const code = cb.replace(/```/g, '').trim();
+                components.push({
+                    id: `md-code-${idx}`,
+                    name: `Code Block ${idx + 1}`,
+                    selector: `.code-block`,
+                    css: `
+.code-block {
+  background: #1a1a1a;
+  color: #0f0;
+  padding: 1rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  overflow-x: auto;
+}`,
+                    html: `<pre class="code-block"><code>${escapeHtml(code.substring(0, 100))}</code></pre>`,
+                    order: components.length
+                });
+            });
+
+            // Extract lists
+            const lists = markdown.match(/^[-*+]\s+(.+)$/gm) || [];
+            if (lists.length > 0) {
+                components.push({
+                    id: `md-list`,
+                    name: `List (${lists.length} items)`,
+                    selector: `.list-item`,
+                    css: `
+.list-item {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+.list-item::before {
+  content: "▸";
+  position: absolute;
+  margin-left: -1.5rem;
+  color: #9a2a2a;
+}`,
+                    html: `<ul>${lists.slice(0, 3).map(l => `<li class="list-item">${l.replace(/^[-*+]\s+/, '')}</li>`).join('')}</ul>`,
+                    order: components.length
+                });
+            }
+
+            // Extract links
+            const links = markdown.match(/\[([^\]]+)\]\(([^)]+)\)/g) || [];
+            if (links.length > 0) {
+                components.push({
+                    id: `md-link`,
+                    name: `Links (${links.length})`,
+                    selector: `.md-link`,
+                    css: `
+.md-link {
+  color: #9a2a2a;
+  text-decoration: none;
+  border-bottom: 1px dotted #9a2a2a;
+  transition: all 0.2s;
+}
+.md-link:hover {
+  color: #fff;
+  background: #9a2a2a;
+  padding: 0 4px;
+}`,
+                    html: `<a href="#" class="md-link">View More</a>`,
+                    order: components.length
+                });
+            }
+
+            // Extract emphasis patterns
+            const bold = markdown.match(/\*\*([^*]+)\*\*/g) || [];
+            if (bold.length > 0) {
+                components.push({
+                    id: `md-bold`,
+                    name: `Bold Text (${bold.length})`,
+                    selector: `.bold-text`,
+                    css: `
+.bold-text {
+  font-weight: bold;
+  color: #9a2a2a;
+}`,
+                    html: `<span class="bold-text">Important</span>`,
+                    order: components.length
+                });
+            }
+
+            const italic = markdown.match(/\*([^*]+)\*/g) || [];
+            if (italic.length > 0) {
+                components.push({
+                    id: `md-italic`,
+                    name: `Italic Text (${italic.length})`,
+                    selector: `.italic-text`,
+                    css: `
+.italic-text {
+  font-style: italic;
+  color: #666;
+}`,
+                    html: `<span class="italic-text">Emphasized</span>`,
+                    order: components.length
+                });
+            }
+
+            // Extract emoji patterns
+            const emojis = markdown.match(/[\p{Emoji}]/gu) || [];
+            if (emojis.length > 0) {
+                const uniqueEmojis = [...new Set(emojis)].slice(0, 5);
+                components.push({
+                    id: `md-emoji`,
+                    name: `Emoji Accents`,
+                    selector: `.emoji-accent`,
+                    css: `
+.emoji-accent {
+  font-size: 1.5em;
+  margin: 0 0.25em;
+  vertical-align: middle;
+}`,
+                    html: `<span class="emoji-accent">${uniqueEmojis.join('')}</span>`,
+                    order: components.length
+                });
+            }
+
+            // Extract horizontal rules
+            if (markdown.includes('---')) {
+                components.push({
+                    id: `md-divider`,
+                    name: `Divider/Section Break`,
+                    selector: `.divider`,
+                    css: `
+.divider {
+  border: none;
+  border-top: 2px solid #9a2a2a;
+  margin: 2rem 0;
+}`,
+                    html: `<hr class="divider">`,
+                    order: components.length
+                });
+            }
+
+            return components;
+        }
+
         function extractComponents() {
-            const html = document.getElementById('html-input').value;
-            if (!html.trim()) {
-                showStatus('Please paste HTML', true);
+            const input = document.getElementById('html-input').value;
+            if (!input.trim()) {
+                showStatus('Please paste content', true);
                 return;
             }
 
             try {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const styleTag = doc.querySelector('style');
-                const css = styleTag ? styleTag.textContent : '';
+                if (currentInputMode === 'markdown') {
+                    components = parseMarkdown(input);
+                } else {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(input, 'text/html');
+                    const styleTag = doc.querySelector('style');
+                    const css = styleTag ? styleTag.textContent : '';
 
-                components = [];
+                    components = [];
 
-                // Extract individual CSS rules
-                const rules = css.split('}').filter(r => r.trim());
-                rules.forEach((rule, idx) => {
-                    if (!rule.trim()) return;
-                    
-                    const match = rule.match(/([^{]+){([^}]*)/);
-                    if (match) {
-                        const selector = match[1].trim();
-                        const styles = match[2].trim();
+                    const rules = css.split('}').filter(r => r.trim());
+                    rules.forEach((rule, idx) => {
+                        if (!rule.trim()) return;
                         
-                        if (selector && styles) {
-                            components.push({
-                                id: `comp-${idx}`,
-                                name: selector.substring(0, 30),
-                                selector: selector,
-                                css: `${selector} {\n  ${styles}\n}`,
-                                html: `<div class="${selector.replace(/^\./, '').split(' ')[0]}">Content</div>`,
-                                order: idx
-                            });
+                        const match = rule.match(/([^{]+){([^}]*)/);
+                        if (match) {
+                            const selector = match[1].trim();
+                            const styles = match[2].trim();
+                            
+                            if (selector && styles) {
+                                components.push({
+                                    id: `comp-${idx}`,
+                                    name: selector.substring(0, 30),
+                                    selector: selector,
+                                    css: `${selector} {\n  ${styles}\n}`,
+                                    html: `<div class="${selector.replace(/^\./, '').split(' ')[0]}">Content</div>`,
+                                    order: idx
+                                });
+                            }
                         }
-                    }
-                });
-
-                // Extract @keyframes
-                const keyframes = css.match(/@keyframes[\s\S]*?}/g) || [];
-                keyframes.forEach((kf, idx) => {
-                    components.push({
-                        id: `anim-${idx}`,
-                        name: kf.substring(0, 40) + '...',
-                        selector: '@keyframes',
-                        css: kf,
-                        html: `<div style="animation: your-animation 2s;">Animated</div>`,
-                        order: components.length
                     });
-                });
 
-                // Extract media queries
-                const media = css.match(/@media[\s\S]*?}\s*}/g) || [];
-                media.forEach((m, idx) => {
-                    components.push({
-                        id: `media-${idx}`,
-                        name: '@media query',
-                        selector: m.substring(0, 40) + '...',
-                        css: m,
-                        html: `<!-- Media query rules -->`,
-                        order: components.length
+                    const keyframes = css.match(/@keyframes[\s\S]*?}/g) || [];
+                    keyframes.forEach((kf, idx) => {
+                        components.push({
+                            id: `anim-${idx}`,
+                            name: kf.substring(0, 40) + '...',
+                            selector: '@keyframes',
+                            css: kf,
+                            html: `<div style="animation: your-animation 2s;">Animated</div>`,
+                            order: components.length
+                        });
                     });
-                });
+
+                    const media = css.match(/@media[\s\S]*?}\s*}/g) || [];
+                    media.forEach((m, idx) => {
+                        components.push({
+                            id: `media-${idx}`,
+                            name: '@media query',
+                            selector: m.substring(0, 40) + '...',
+                            css: m,
+                            html: `<!-- Media query rules -->`,
+                            order: components.length
+                        });
+                    });
+                }
 
                 displayComponents();
-                showStatus(`Extracted ${components.length} CSS components!`);
+                showStatus(`Extracted ${components.length} components!`);
             } catch (e) {
                 showStatus(`Error: ${e.message}`, true);
             }
@@ -392,15 +712,117 @@
 
             builder.innerHTML = '<h3>' + builderItems.length + ' component(s) added</h3>' + 
                 builderItems.map((item, idx) => `
-                    <div class="builder-item">
+                    <div class="builder-item" draggable="true" ondragstart="dragStartBuilder(event, ${idx})" ondragover="dragOverBuilder(event)" ondrop="dropInBuilder(event, ${idx})" ondragleave="dragLeaveBuilder(event)">
+                        <span class="drag-handle">⋮⋮</span>
+                        <button class="edit-btn" onclick="editComponent(${idx})">Edit</button>
                         <button class="remove-btn" onclick="removeBuilderItem(${idx})">Remove</button>
-                        <strong>${item.name}</strong>
-                        <div style="font-size: 12px; color: #666; margin: 8px 0;">${item.selector}</div>
+                        <strong style="margin-left: 25px;">${item.name}</strong>
+                        <div style="font-size: 12px; color: #666; margin: 8px 0 8px 25px;">${item.selector}</div>
                         <div class="component-css">${escapeHtml(item.css)}</div>
                     </div>
                 `).join('');
 
             generateOutput();
+        }
+
+        function dragStartBuilder(event, idx) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('builderIndex', idx);
+        }
+
+        function dragOverBuilder(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            event.target.closest('.builder-item')?.classList.add('drag-over');
+        }
+
+        function dragLeaveBuilder(event) {
+            event.target.closest('.builder-item')?.classList.remove('drag-over');
+        }
+
+        function dropInBuilder(event, targetIdx) {
+            event.preventDefault();
+            event.target.closest('.builder-item')?.classList.remove('drag-over');
+            
+            const sourceIdx = parseInt(event.dataTransfer.getData('builderIndex'));
+            if (sourceIdx === targetIdx) return;
+
+            // Reorder array
+            const item = builderItems.splice(sourceIdx, 1)[0];
+            builderItems.splice(targetIdx, 0, item);
+            updateBuilder();
+            showStatus('Reordered!');
+        }
+
+        function editComponent(idx) {
+            const item = builderItems[idx];
+            const modal = document.getElementById('edit-modal');
+            document.getElementById('edit-component-name').value = item.name;
+            document.getElementById('edit-component-css').value = item.css;
+            document.getElementById('edit-component-html').value = item.html;
+            document.getElementById('edit-index').value = idx;
+            modal.classList.add('show');
+        }
+
+        function saveEdit() {
+            const idx = parseInt(document.getElementById('edit-index').value);
+            const name = document.getElementById('edit-component-name').value;
+            const css = document.getElementById('edit-component-css').value;
+            const html = document.getElementById('edit-component-html').value;
+
+            builderItems[idx].name = name;
+            builderItems[idx].css = css;
+            builderItems[idx].html = html;
+
+            document.getElementById('edit-modal').classList.remove('show');
+            updateBuilder();
+            showStatus('Component updated!');
+        }
+
+        function cancelEdit() {
+            document.getElementById('edit-modal').classList.remove('show');
+        }
+
+        function saveTemplate() {
+            if (builderItems.length === 0) {
+                showStatus('No components to save', true);
+                return;
+            }
+
+            const name = prompt('Template name:', 'My Template ' + new Date().toLocaleDateString());
+            if (!name) return;
+
+            const templates = JSON.parse(localStorage.getItem('cssTemplates') || '{}');
+            templates[name] = {
+                items: builderItems,
+                created: new Date().toISOString(),
+                componentCount: builderItems.length
+            };
+            localStorage.setItem('cssTemplates', JSON.stringify(templates));
+            
+            const status = document.getElementById('save-status');
+            status.textContent = `✓ Saved as "${name}"`;
+            setTimeout(() => status.textContent = '', 3000);
+        }
+
+        function loadTemplate() {
+            const templates = JSON.parse(localStorage.getItem('cssTemplates') || '{}');
+            const names = Object.keys(templates);
+
+            if (names.length === 0) {
+                showStatus('No saved templates', true);
+                return;
+            }
+
+            const name = prompt(`Saved templates:\n\n${names.join('\n')}\n\nEnter template name to load:`);
+            if (!name || !templates[name]) {
+                showStatus('Template not found', true);
+                return;
+            }
+
+            builderItems = templates[name].items;
+            updateBuilder();
+            showStatus(`Loaded "${name}" (${templates[name].componentCount} components)`);
         }
 
         function removeBuilderItem(idx) {
