@@ -100,6 +100,17 @@
             overflow-y: auto;
             margin: 8px 0;
         }
+        .component-js {
+            background: #f8f8f8;
+            color: #006600;
+            padding: 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 100px;
+            overflow-y: auto;
+            margin: 8px 0;
+        }
         .component-html {
             background: #fff9e6;
             padding: 8px;
@@ -280,6 +291,19 @@
             background: #ffebee;
             color: #c62828;
         }
+        .toggle-controls {
+            display: flex;
+            gap: 15px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        .toggle-controls label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 13px;
+        }
         @media (max-width: 1200px) {
             .main-container {
                 grid-template-columns: 1fr 1fr;
@@ -332,6 +356,10 @@
             <button onclick="saveTemplate()">Save Template</button>
             <button onclick="loadTemplate()">Load Saved</button>
             <button onclick="clearBuilder()">Clear Builder</button>
+            <div class="toggle-controls">
+                <label><input type="checkbox" id="include-css" checked> Include Styles (CSS)</label>
+                <label><input type="checkbox" id="include-js" checked> Include Scripts (JS)</label>
+            </div>
             <div id="save-status" style="font-size: 12px; color: #999; margin-top: 8px;"></div>
             <div class="builder-area" id="builder" ondrop="dropComponent(event)" ondragover="dragOver(event)" ondragleave="dragLeave(event)">
                 <h3>Drag components here to build</h3>
@@ -401,6 +429,7 @@
                 components.push({
                     id: `md-heading-${idx}`,
                     name: `H${level}: ${text.substring(0, 25)}`,
+                    type: 'css',
                     selector: `.heading-${level}`,
                     css: `
 .heading-${level} {
@@ -421,6 +450,7 @@
                 components.push({
                     id: `md-quote-${idx}`,
                     name: `Quote: ${text.substring(0, 25)}`,
+                    type: 'css',
                     selector: `.blockquote`,
                     css: `
 .blockquote {
@@ -442,6 +472,7 @@
                 components.push({
                     id: `md-code-${idx}`,
                     name: `Code Block ${idx + 1}`,
+                    type: 'css',
                     selector: `.code-block`,
                     css: `
 .code-block {
@@ -464,6 +495,7 @@
                 components.push({
                     id: `md-list`,
                     name: `List (${lists.length} items)`,
+                    type: 'css',
                     selector: `.list-item`,
                     css: `
 .list-item {
@@ -488,6 +520,7 @@
                 components.push({
                     id: `md-link`,
                     name: `Links (${links.length})`,
+                    type: 'css',
                     selector: `.md-link`,
                     css: `
 .md-link {
@@ -512,6 +545,7 @@
                 components.push({
                     id: `md-bold`,
                     name: `Bold Text (${bold.length})`,
+                    type: 'css',
                     selector: `.bold-text`,
                     css: `
 .bold-text {
@@ -528,6 +562,7 @@
                 components.push({
                     id: `md-italic`,
                     name: `Italic Text (${italic.length})`,
+                    type: 'css',
                     selector: `.italic-text`,
                     css: `
 .italic-text {
@@ -546,6 +581,7 @@
                 components.push({
                     id: `md-emoji`,
                     name: `Emoji Accents`,
+                    type: 'css',
                     selector: `.emoji-accent`,
                     css: `
 .emoji-accent {
@@ -563,6 +599,7 @@
                 components.push({
                     id: `md-divider`,
                     name: `Divider/Section Break`,
+                    type: 'css',
                     selector: `.divider`,
                     css: `
 .divider {
@@ -609,6 +646,7 @@
                                 components.push({
                                     id: `comp-${idx}`,
                                     name: selector.substring(0, 30),
+                                    type: 'css',
                                     selector: selector,
                                     css: `${selector} {\n  ${styles}\n}`,
                                     html: `<div class="${selector.replace(/^\./, '').split(' ')[0]}">Content</div>`,
@@ -623,6 +661,7 @@
                         components.push({
                             id: `anim-${idx}`,
                             name: kf.substring(0, 40) + '...',
+                            type: 'css',
                             selector: '@keyframes',
                             css: kf,
                             html: `<div style="animation: your-animation 2s;">Animated</div>`,
@@ -635,11 +674,45 @@
                         components.push({
                             id: `media-${idx}`,
                             name: '@media query',
+                            type: 'css',
                             selector: m.substring(0, 40) + '...',
                             css: m,
                             html: `<!-- Media query rules -->`,
                             order: components.length
                         });
+                    });
+
+                    // Extract scripts
+                    const scriptTags = Array.from(doc.querySelectorAll('script'));
+                    scriptTags.forEach((script, idx) => {
+                        if (script.src) {
+                            // External script
+                            const src = script.src;
+                            components.push({
+                                id: `script-${idx}`,
+                                name: `External Script: ${src.substring(src.lastIndexOf('/') + 1)}`,
+                                type: 'js',
+                                selector: 'script[src]',
+                                css: '',
+                                js: script.outerHTML,
+                                html: script.outerHTML,
+                                order: components.length
+                            });
+                        } else {
+                            const code = script.textContent.trim();
+                            if (code) {
+                                components.push({
+                                    id: `script-${idx}`,
+                                    name: `Inline Script ${idx + 1}`,
+                                    type: 'js',
+                                    selector: 'script',
+                                    css: '',
+                                    js: code,
+                                    html: `<script>${code}</script>`,
+                                    order: components.length
+                                });
+                            }
+                        }
                     });
                 }
 
@@ -663,10 +736,10 @@
                         ${comp.name}
                         <span style="font-size: 11px; color: #999;">#${comp.id}</span>
                     </div>
-                    <div class="component-css">${escapeHtml(comp.css).substring(0, 150)}...</div>
+                    <div class="${comp.type === 'js' ? 'component-js' : 'component-css'}">${escapeHtml((comp.type === 'js' ? (comp.js || comp.html) : comp.css).substring(0, 150))}...</div>
                     <div class="action-buttons">
                         <button onclick="addToBuilder('${comp.id}')">Add to Builder</button>
-                        <button onclick="copyComponent('${comp.id}')" style="background: #0066cc;">Copy CSS</button>
+                        <button onclick="copyComponent('${comp.id}')" style="background: #0066cc;">${comp.type === 'js' ? 'Copy JS' : 'Copy CSS'}</button>
                     </div>
                 </div>
             `).join('');
@@ -719,7 +792,7 @@
                         <button class="remove-btn" onclick="removeBuilderItem(${idx})">Remove</button>
                         <strong style="margin-left: 25px;">${item.name}</strong>
                         <div style="font-size: 12px; color: #666; margin: 8px 0 8px 25px;">${item.selector}</div>
-                        <div class="component-css">${escapeHtml(item.css)}</div>
+                        <div class="${item.type === 'js' ? 'component-js' : 'component-css'}">${escapeHtml(item.type === 'js' ? (item.js || item.html) : item.css)}</div>
                     </div>
                 `).join('');
 
@@ -832,8 +905,14 @@
         }
 
         function generateOutput() {
-            const cssCode = builderItems.map(item => item.css).join('\n\n');
-            const htmlCode = builderItems.map((item, idx) => 
+            const includeCSS = document.getElementById('include-css').checked;
+            const includeJS = document.getElementById('include-js').checked;
+
+            const cssItems = builderItems.filter(item => item.type === 'css');
+            const visibleItems = builderItems.filter(item => item.type !== 'js' || includeJS);
+
+            const cssCode = cssItems.map(item => item.css).join('\n\n');
+            const htmlCode = visibleItems.map((item, idx) => 
                 `<!-- Block ${idx + 1}: ${item.name} -->\n${item.html}`
             ).join('\n\n');
 
@@ -907,8 +986,10 @@ p, li, dt, dd {
             fullCode += '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
             fullCode += '    <title>Built Template</title>\n';
             fullCode += '    <style>\n';
-            fullCode += responsiveCSS + '\n\n';
-            fullCode += cssCode + '\n';
+            fullCode += responsiveCSS + '\n';
+            if (includeCSS && cssCode) {
+                fullCode += '\n\n' + cssCode + '\n';
+            }
             fullCode += '    </style>\n';
             fullCode += '</head>\n';
             fullCode += '<body>\n';
@@ -921,8 +1002,9 @@ p, li, dt, dd {
 
         function copyComponent(compId) {
             const comp = components.find(c => c.id === compId);
-            navigator.clipboard.writeText(comp.css).then(() => {
-                showStatus('CSS copied!');
+            const text = comp.type === 'js' ? (comp.js || comp.html) : comp.css;
+            navigator.clipboard.writeText(text).then(() => {
+                showStatus(`${comp.type === 'js' ? 'JS' : 'CSS'} copied!`);
             });
         }
 
@@ -950,23 +1032,32 @@ p, li, dt, dd {
                 return;
             }
 
-            const cssCode = builderItems.map(item => item.css).join('\n\n');
-            const htmlCode = builderItems.map((item, idx) => 
+            const includeCSS = document.getElementById('include-css').checked;
+            const includeJS = document.getElementById('include-js').checked;
+
+            const cssItems = builderItems.filter(item => item.type === 'css');
+            const visibleItems = builderItems.filter(item => item.type !== 'js' || includeJS);
+
+            let cssCode = cssItems.map(item => item.css).join('\n\n');
+            const htmlCode = visibleItems.map((item, idx) => 
                 `<!-- Block ${idx + 1}: ${item.name} -->\n${item.html}`
             ).join('\n\n');
 
             // Aggressive mobile forcing - strip all fixed dimensions
-            const mobileForcedCSS = cssCode
-                .replace(/width\s*:\s*\d+px/gi, 'width: 100%')
-                .replace(/max-width\s*:\s*\d+px/gi, 'max-width: 100%')
-                .replace(/min-width\s*:\s*\d+px/gi, 'min-width: auto')
-                .replace(/height\s*:\s*\d+px/gi, 'height: auto')
-                .replace(/min-height\s*:\s*\d+px/gi, 'min-height: auto')
-                .replace(/padding\s*:\s*[\d.]+rem/gi, 'padding: 0.5rem')
-                .replace(/margin\s*:\s*[\d.]+rem/gi, 'margin: 0.5rem auto')
-                .replace(/font-size\s*:\s*[\d.]+rem/gi, 'font-size: 1rem')
-                .replace(/font-size\s*:\s*[\d.]+em/gi, 'font-size: 1em')
-                .replace(/gap\s*:\s*[\d.]+rem/gi, 'gap: 0.5rem');
+            let mobileForcedCSS = '';
+            if (includeCSS && cssCode) {
+                mobileForcedCSS = cssCode
+                    .replace(/width\s*:\s*\d+px/gi, 'width: 100%')
+                    .replace(/max-width\s*:\s*\d+px/gi, 'max-width: 100%')
+                    .replace(/min-width\s*:\s*\d+px/gi, 'min-width: auto')
+                    .replace(/height\s*:\s*\d+px/gi, 'height: auto')
+                    .replace(/min-height\s*:\s*\d+px/gi, 'min-height: auto')
+                    .replace(/padding\s*:\s*[\d.]+rem/gi, 'padding: 0.5rem')
+                    .replace(/margin\s*:\s*[\d.]+rem/gi, 'margin: 0.5rem auto')
+                    .replace(/font-size\s*:\s*[\d.]+rem/gi, 'font-size: 1rem')
+                    .replace(/font-size\s*:\s*[\d.]+em/gi, 'font-size: 1em')
+                    .replace(/gap\s*:\s*[\d.]+rem/gi, 'gap: 0.5rem');
+            }
 
             const responsiveCSS = `* {
   margin: 0;
@@ -1093,8 +1184,8 @@ body, html {
             fullCode += '    <meta http-equiv="X-UA-Compatible" content="IE=edge">\n';
             fullCode += '    <title>Built Template - Mobile Optimized</title>\n';
             fullCode += '    <style>\n';
-            fullCode += responsiveCSS + '\n\n';
-            fullCode += mobileForcedCSS + '\n';
+            fullCode += responsiveCSS + '\n';
+            fullCode += '\n\n' + mobileForcedCSS + '\n';
             fullCode += '    </style>\n';
             fullCode += '</head>\n';
             fullCode += '<body>\n';
@@ -1131,6 +1222,10 @@ body, html {
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // Initialize toggle listeners
+        document.getElementById('include-css').addEventListener('change', generateOutput);
+        document.getElementById('include-js').addEventListener('change', generateOutput);
     </script>
 </body>
 </html>
